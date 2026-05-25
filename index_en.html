@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hamster Meal Decider</title>
+  <style>
+    :root {
+      --bg: #fefce8;
+      --card: rgba(255, 251, 239, 0.82);
+      --line: rgba(74, 55, 40, 0.1);
+      --text: #4a3728;
+      --muted: rgba(74, 55, 40, 0.7);
+      --glow: 0 22px 44px rgba(202, 176, 122, 0.18);
+      --soft-shadow: 0 14px 28px rgba(201, 178, 129, 0.14);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: "Arial Rounded MT Bold", "Avenir Next Rounded", "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 14%, rgba(255, 230, 166, 0.5), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(255, 214, 182, 0.42), transparent 18%),
+        radial-gradient(circle at 50% 90%, rgba(220, 239, 214, 0.58), transparent 24%),
+        linear-gradient(180deg, var(--bg), #fff8dc);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(16px);
+      z-index: 0;
+    }
+
+    body::before {
+      top: -120px;
+      left: -80px;
+      background: rgba(255, 245, 201, 0.8);
+    }
+
+    body::after {
+      right: -100px;
+      bottom: -120px;
+      background: rgba(248, 208, 190, 0.46);
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.64);
+      border: 1px solid rgba(74, 55, 40, 0.07);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(12px);
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      margin: 16px 0 0;
+      font-size: clamp(2.4rem, 4vw, 4.3rem);
+      line-height: 1.04;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-copy {
+      width: min(700px, 100%);
+      margin: 16px auto 0;
+      line-height: 1.85;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 420px) minmax(340px, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel,
+    .stage {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 248, 232, 0.94));
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--glow);
+      backdrop-filter: blur(14px);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2,
+    .stage h2 {
+      margin: 0 0 8px;
+      font-size: 1.16rem;
+    }
+
+    .panel-copy,
+    .stage-copy {
+      margin: 0 0 18px;
+      line-height: 1.75;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label,
+    .switch-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: "▾";
+      position: absolute;
+      top: 50%;
+      right: 18px;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    select {
+      width: 100%;
+      appearance: none;
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #fffdf7, #fff6e2);
+      color: var(--text);
+      padding: 16px 48px 16px 16px;
+      font-size: 0.98rem;
+      font-family: inherit;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 12px 24px rgba(210, 187, 139, 0.14);
+      outline: none;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    select:focus {
+      transform: translateY(-1px);
+      border-color: rgba(245, 192, 111, 0.8);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 14px 28px rgba(210, 187, 139, 0.2);
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #fffdf7, #fff3da);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: 0 12px 24px rgba(210, 187, 139, 0.12);
+    }
+
+    .switch-copy {
+      font-size: 0.82rem;
+      color: rgba(74, 55, 40, 0.6);
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+
+    .bean-switch {
+      position: relative;
+      width: 78px;
+      height: 42px;
+      flex-shrink: 0;
+    }
+
+    .bean-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .bean-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: linear-gradient(180deg, #f1dbc7, #efcba9);
+      border-radius: 999px;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.7), inset 0 -2px 4px rgba(158, 110, 72, 0.12);
+      transition: 0.28s ease;
+    }
+
+    .bean-slider::before {
+      content: "";
+      position: absolute;
+      top: 5px;
+      left: 6px;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #fffdfc, #fff0de);
+      box-shadow: 0 6px 16px rgba(122, 95, 69, 0.18);
+      transition: 0.28s ease;
+    }
+
+    .bean-slider::after {
+      content: "ZZZ";
+      position: absolute;
+      left: 38px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      color: rgba(74, 55, 40, 0.48);
+      transition: 0.28s ease;
+    }
+
+    .bean-switch input:checked + .bean-slider {
+      background: linear-gradient(180deg, #d7efcf, #bfe5ba);
+    }
+
+    .bean-switch input:checked + .bean-slider::before {
+      transform: translateX(34px);
+      background: linear-gradient(180deg, #fffdfc, #f4fff3);
+    }
+
+    .bean-switch input:checked + .bean-slider::after {
+      content: "ON";
+      left: 12px;
+      color: rgba(74, 55, 40, 0.72);
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      min-height: 720px;
+    }
+
+    .stage::before,
+    .stage::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .stage::before {
+      width: 280px;
+      height: 280px;
+      top: -100px;
+      right: -60px;
+      background: rgba(255, 221, 151, 0.24);
+      filter: blur(10px);
+    }
+
+    .stage::after {
+      width: 240px;
+      height: 240px;
+      left: -50px;
+      bottom: -70px;
+      background: rgba(247, 180, 168, 0.16);
+      filter: blur(14px);
+    }
+
+    .stage-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .status-pill {
+      max-width: 280px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #fffdf8, #fff2d8);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: var(--soft-shadow);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .decision-area {
+      position: relative;
+      z-index: 2;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 12px 8px 8px;
+    }
+
+    .hamster-scene {
+      width: min(620px, 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 10px;
+    }
+
+    .hamster-bubble {
+      position: relative;
+      max-width: 280px;
+      padding: 14px 16px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: var(--soft-shadow);
+      text-align: left;
+      line-height: 1.72;
+      font-size: 0.92rem;
+      animation: floaty 3.8s ease-in-out infinite;
+    }
+
+    .hamster-bubble::after {
+      content: "";
+      position: absolute;
+      right: 22px;
+      bottom: -10px;
+      width: 18px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.82);
+      transform: rotate(45deg);
+      border-right: 1px solid rgba(74, 55, 40, 0.06);
+      border-bottom: 1px solid rgba(74, 55, 40, 0.06);
+    }
+
+    .hamster-face {
+      position: relative;
+      width: 148px;
+      height: 148px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 60%, #fffdf7 0 27%, transparent 27%),
+        radial-gradient(circle at 28% 25%, #f6ceb1 0 14%, transparent 14%),
+        radial-gradient(circle at 72% 25%, #f6ceb1 0 14%, transparent 14%),
+        linear-gradient(180deg, #f5d5ad, #efc18f);
+      box-shadow: 0 18px 30px rgba(201, 160, 112, 0.22);
+      animation: floaty 4.4s ease-in-out infinite reverse;
+    }
+
+    .hamster-face::before,
+    .hamster-face::after {
+      content: "";
+      position: absolute;
+      top: 55px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--text);
+    }
+
+    .hamster-face::before {
+      left: 48px;
+    }
+
+    .hamster-face::after {
+      right: 48px;
+    }
+
+    .nose {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 11px;
+      border-radius: 50% 50% 60% 60%;
+      background: #c98b7b;
+      box-shadow: 0 16px 0 -8px rgba(74, 55, 40, 0.88);
+    }
+
+    .pudding-wrap {
+      position: relative;
+      margin-top: 8px;
+    }
+
+    .launch-stack {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pudding-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(210, 178, 106, 0.18);
+      filter: blur(8px);
+    }
+
+    .pudding-button {
+      position: relative;
+      width: min(360px, 82vw);
+      min-height: 184px;
+      border: 0;
+      border-radius: 42px;
+      background:
+        radial-gradient(circle at 50% 22%, rgba(255, 255, 255, 0.96), transparent 20%),
+        linear-gradient(180deg, #ffe8a6 0%, #ffd88c 54%, #efb66a 55%, #f6c47b 100%);
+      color: var(--text);
+      font-family: inherit;
+      font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      box-shadow:
+        inset 0 10px 20px rgba(255, 255, 255, 0.55),
+        inset 0 -10px 14px rgba(183, 122, 68, 0.18),
+        0 24px 36px rgba(210, 168, 101, 0.26);
+      transform-origin: center bottom;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.2s ease;
+      animation: idleBounce 3.5s ease-in-out infinite;
+    }
+
+    .pudding-button:hover:not(:disabled) {
+      animation: jelly 0.85s ease both;
+      filter: saturate(1.05);
+    }
+
+    .pudding-button:active:not(:disabled) {
+      transform: translateY(8px) scale(0.96);
+      box-shadow:
+        inset 0 6px 12px rgba(255, 255, 255, 0.48),
+        inset 0 -8px 10px rgba(183, 122, 68, 0.18),
+        0 12px 18px rgba(210, 168, 101, 0.18);
+    }
+
+    .pudding-button:disabled {
+      cursor: wait;
+      filter: grayscale(0.08) brightness(0.98);
+    }
+
+    .button-note {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      opacity: 0.72;
+    }
+
+    .spinner-zone {
+      margin-top: 40px;
+      min-height: 132px;
+      display: grid;
+      place-items: center;
+    }
+
+    .food-spinner {
+      width: 120px;
+      height: 120px;
+      border-radius: 32px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #fffdf8, #fff4df);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: var(--soft-shadow);
+      font-size: 3.4rem;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .food-spinner.active {
+      opacity: 1;
+      transform: scale(1);
+      animation: pulseSpin 0.36s ease-in-out infinite alternate;
+    }
+
+    .result-card {
+      width: min(560px, 100%);
+      margin: 26px auto 0;
+      padding: 24px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255, 252, 244, 0.92), rgba(255, 244, 220, 0.98));
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: 0 24px 40px rgba(196, 158, 103, 0.24);
+      backdrop-filter: blur(16px);
+      text-align: left;
+      opacity: 0;
+      transform: translateY(18px) scale(0.97);
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .result-card.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .result-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .result-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: 0 8px 16px rgba(210, 187, 139, 0.12);
+      font-size: 0.82rem;
+    }
+
+    .result-card h3 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.3vw, 1.9rem);
+      line-height: 1.4;
+    }
+
+    .result-copy {
+      margin: 14px 0 0;
+      line-height: 1.85;
+      font-size: 0.98rem;
+      color: rgba(74, 55, 40, 0.84);
+    }
+
+    .result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 20px;
+    }
+
+    .meta-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      font-size: 0.84rem;
+    }
+
+    .restaurant-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .restaurant-item {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 247, 225, 0.96));
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      box-shadow: 0 14px 24px rgba(210, 187, 139, 0.16);
+    }
+
+    .restaurant-head {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .restaurant-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 1.7rem;
+      background: linear-gradient(180deg, #fffdf7, #ffeeba);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.78), 0 10px 18px rgba(228, 190, 111, 0.18);
+    }
+
+    .restaurant-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .restaurant-title-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .restaurant-name {
+      margin: 0;
+      font-size: 1.02rem;
+      line-height: 1.35;
+    }
+
+    .restaurant-rating {
+      flex-shrink: 0;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .restaurant-subtitle {
+      margin: 6px 0 0;
+      font-size: 0.86rem;
+      color: rgba(74, 55, 40, 0.66);
+      line-height: 1.6;
+    }
+
+    .restaurant-blurb {
+      margin: 12px 0 14px;
+      font-size: 0.9rem;
+      line-height: 1.72;
+      color: rgba(74, 55, 40, 0.82);
+    }
+
+    .restaurant-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .restaurant-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(74, 55, 40, 0.08);
+      font-size: 0.8rem;
+    }
+
+    .paw-button {
+      width: 100%;
+      border: 0;
+      border-radius: var(--radius-md);
+      padding: 15px 18px;
+      font-size: 0.96rem;
+      font-family: inherit;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      background: linear-gradient(180deg, #fff9da, #ffe796);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.75),
+        0 0 0 0 rgba(255, 231, 150, 0.65),
+        0 14px 24px rgba(233, 191, 99, 0.22);
+      animation: glow 2.2s ease-in-out infinite;
+      transition: transform 0.16s ease;
+    }
+
+    .paw-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .paw-button:active {
+      transform: translateY(3px) scale(0.98);
+    }
+
+    .restaurant-empty {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px dashed rgba(74, 55, 40, 0.14);
+      text-align: center;
+      line-height: 1.75;
+      color: rgba(74, 55, 40, 0.72);
+    }
+
+    .result-tip {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: rgba(74, 55, 40, 0.6);
+    }
+
+    @keyframes jelly {
+      0% { transform: scale(1, 1); }
+      25% { transform: scale(1.06, 0.94); }
+      40% { transform: scale(0.95, 1.06); }
+      55% { transform: scale(1.03, 0.97); }
+      70% { transform: scale(0.98, 1.02); }
+      100% { transform: scale(1, 1); }
+    }
+
+    @keyframes idleBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes pulseSpin {
+      from { transform: scale(1) rotate(-5deg); }
+      to { transform: scale(1.08) rotate(5deg); }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.75), 0 0 0 0 rgba(255, 231, 150, 0.28), 0 14px 24px rgba(233, 191, 99, 0.22); }
+      50% { box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.75), 0 0 0 14px rgba(255, 231, 150, 0), 0 18px 30px rgba(233, 191, 99, 0.28); }
+    }
+
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @media (max-width: 940px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 18px 12px 30px;
+      }
+
+      .panel,
+      .stage {
+        padding: 18px;
+        border-radius: 28px;
+      }
+
+      .stage-top {
+        flex-direction: column;
+      }
+
+      .hamster-scene {
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+
+      .hamster-bubble {
+        position: static;
+        max-width: none;
+        margin-bottom: 0;
+        animation: none;
+      }
+
+      .hamster-bubble::after {
+        display: none;
+      }
+
+      .hamster-face {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 6px;
+      }
+
+      .hamster-face::before,
+      .hamster-face::after {
+        top: 44px;
+      }
+
+      .hamster-face::before {
+        left: 38px;
+      }
+
+      .hamster-face::after {
+        right: 38px;
+      }
+
+      .nose {
+        top: 58px;
+      }
+
+      .decision-area {
+        min-height: auto;
+        padding-top: 0;
+      }
+
+      .pudding-button {
+        min-height: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-badge">🐹 Hamster on duty today</div>
+      <h1>Hamster Meal Decider</h1>
+      <p class="hero-copy">Hand your indecision to the hamster and keep your appetite to yourself. It will read real nearby food data and gently point you toward your next meal.</p>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2>How do you want to eat today?</h2>
+        <p class="panel-copy">A few tiny preferences can turn into a much easier decision. Distance is filtered using real nearby place coordinates from your current location.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="distance">Distance</label>
+            <div class="select-wrap">
+              <select id="distance">
+                <option>5 min walk</option>
+                <option selected>10 min walk</option>
+                <option>15 min walk</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="cuisine">Cuisine</label>
+            <div class="select-wrap">
+              <select id="cuisine">
+                <option>Chinese</option>
+                <option>Japanese</option>
+                <option>Korean</option>
+                <option>Thai</option>
+                <option>Italian</option>
+                <option>Mexican</option>
+                <option>Cafe</option>
+                <option>Dessert</option>
+                <option selected>Anything</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="budget">Budget</label>
+            <div class="select-wrap">
+              <select id="budget">
+                <option selected>cheap</option>
+                <option>medium</option>
+                <option>treat myself</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="switch-row">
+              <div>
+                <div class="switch-title">Status</div>
+                <div class="switch-copy">This will prioritize places that do have business-hour info.</div>
+              </div>
+              <label class="bean-switch" aria-label="Open now toggle">
+                <input id="openNow" type="checkbox" checked />
+                <span class="bean-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="decisionMode">Decision Mode</label>
+            <div class="select-wrap">
+              <select id="decisionMode">
+                <option selected>closest</option>
+                <option>best rated</option>
+                <option>random</option>
+                <option>surprise me</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="stage">
+        <div class="stage-top">
+          <div>
+            <h2>Hamster Control Core</h2>
+            <p class="stage-copy">Press the pudding button and the hamster will check real nearby food spots, then rank them by distance, cuisine, and your chosen mode.</p>
+          </div>
+          <div id="locationStatus" class="status-pill">📍 Requesting your current location…</div>
+        </div>
+
+        <div class="decision-area">
+          <div class="hamster-scene">
+            <div class="hamster-bubble"><span id="hamsterBubbleText">If you are too hungry to think, just tap the pudding. I will decide for you.</span></div>
+
+            <div class="hamster-face" aria-hidden="true">
+              <div class="nose"></div>
+            </div>
+          </div>
+
+          <div class="launch-stack">
+            <div class="pudding-wrap">
+              <div class="pudding-shadow" aria-hidden="true"></div>
+              <button id="launchButton" class="pudding-button" type="button">
+                Launch Meal Mode!
+                <span class="button-note">One tap to end the “what should I eat?” struggle</span>
+              </button>
+            </div>
+
+            <div class="spinner-zone">
+              <div id="foodSpinner" class="food-spinner" aria-live="polite">🍙</div>
+            </div>
+
+            <article id="resultCard" class="result-card" aria-live="polite">
+              <div class="result-top">
+                <div class="result-kicker">🐹 Decision made</div>
+                <div id="resultModeTag" class="result-kicker">closest mode</div>
+              </div>
+              <h3 id="resultTitle">The hamster is warming up…</h3>
+              <p id="resultCopy" class="result-copy">After you press the pudding button, you will see up to 3 real nearby places here.</p>
+              <div id="resultMeta" class="result-meta"></div>
+              <div id="restaurantList" class="restaurant-list">
+                <div class="restaurant-empty">Tap the pudding and the hamster will bring your meal route right to you.</div>
+              </div>
+              <div id="resultTip" class="result-tip">Each card will open Google Maps using coordinates, so you do not end up with unfindable place names.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const distanceSelect = document.getElementById("distance");
+    const cuisineSelect = document.getElementById("cuisine");
+    const budgetSelect = document.getElementById("budget");
+    const openNowToggle = document.getElementById("openNow");
+    const decisionModeSelect = document.getElementById("decisionMode");
+    const launchButton = document.getElementById("launchButton");
+    const foodSpinner = document.getElementById("foodSpinner");
+    const resultCard = document.getElementById("resultCard");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultCopy = document.getElementById("resultCopy");
+    const resultMeta = document.getElementById("resultMeta");
+    const restaurantList = document.getElementById("restaurantList");
+    const resultModeTag = document.getElementById("resultModeTag");
+    const resultTip = document.getElementById("resultTip");
+    const locationStatus = document.getElementById("locationStatus");
+    const hamsterBubbleText = document.getElementById("hamsterBubbleText");
+
+    const foodIcons = ["🍚", "🍕", "🍔", "🍜", "🍣", "🧋", "🍩", "🥟", "🍛", "🍰"];
+    const comfortLines = [
+      "If you are too hungry to think, just tap the pudding. I will decide for you.",
+      "I am sniffing out nearby food right now. Hang on, we are almost there.",
+      "You do not have to overthink lunch today. Let me narrow it down for you.",
+      "Leave the decision to me and keep your appetite ready.",
+      "I will try my best to show only real nearby places you can actually find."
+    ];
+
+    const overpassEndpoints = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+      "https://overpass.osm.ch/api/interpreter"
+    ];
+
+    const distanceSettings = {
+      "5 min walk": { maxMinutes: 5, radiusMeters: 325 },
+      "10 min walk": { maxMinutes: 10, radiusMeters: 650 },
+      "15 min walk": { maxMinutes: 15, radiusMeters: 975 }
+    };
+
+    const cuisineIcons = {
+      Chinese: "🥟",
+      Japanese: "🍜",
+      Korean: "🍗",
+      Thai: "🍜",
+      Italian: "🍕",
+      Mexican: "🌮",
+      Cafe: "☕",
+      Dessert: "🍰",
+      Anything: "🍽️"
+    };
+
+    const cuisineMatchers = {
+      Chinese: ["chinese", "sichuan", "szechuan", "cantonese", "shanghainese", "taiwanese", "hotpot", "hot pot", "dumpling", "noodle", "wok", "dim sum"],
+      Japanese: ["japanese", "sushi", "ramen", "udon", "izakaya", "soba", "yakitori", "katsu"],
+      Korean: ["korean", "bibimbap", "kimchi", "kbbq", "korean barbecue", "pocha"],
+      Thai: ["thai", "pad thai", "curry", "tom yum"],
+      Italian: ["italian", "pizza", "pasta", "pizzeria", "trattoria", "osteria"],
+      Mexican: ["mexican", "taco", "burrito", "quesadilla", "taqueria"],
+      Cafe: ["cafe", "coffee", "coffee shop", "tea", "bubble tea", "bakery", "pastry", "matcha"],
+      Dessert: ["dessert", "ice cream", "ice_cream", "gelato", "cake", "bakery", "pastry", "donut", "doughnut", "confectionery", "sweet"]
+    };
+
+    const budgetHints = {
+      cheap: ["fast_food", "cafe", "bakery", "food_court", "ice_cream"],
+      medium: ["restaurant", "cafe", "fast_food", "bakery"],
+      "treat myself": ["restaurant", "bar", "pub"]
+    };
+
+    const decisionCopy = {
+      closest: "I will prioritize real straight-line distance so you can walk less.",
+      "best rated": "Free public map data does not provide reliable ratings, so this mode prioritizes place type and distance instead.",
+      random: "I will randomly pick from real nearby places that fit the range, without inventing fake restaurants.",
+      "surprise me": "I will loosen the cuisine preference and give you a little randomness from real nearby food spots."
+    };
+
+    let userLocation = null;
+    let locationPromise = null;
+    let spinnerTimer = null;
+    let lastRawPlaces = [];
+
+    function updateLocationStatus(message) {
+      locationStatus.textContent = message;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function randomFrom(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function updateBubbleMessage(customText = "") {
+      if (!hamsterBubbleText) return;
+      hamsterBubbleText.textContent = customText || randomFrom(comfortLines);
+    }
+
+    function shuffle(list) {
+      const cloned = [...list];
+      for (let i = cloned.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cloned[i], cloned[j]] = [cloned[j], cloned[i]];
+      }
+      return cloned;
+    }
+
+    function getFilters() {
+      const mode = decisionModeSelect.value;
+      const cuisine = mode === "surprise me" ? "Anything" : cuisineSelect.value;
+      return {
+        distance: distanceSelect.value,
+        cuisine,
+        visibleCuisine: cuisineSelect.value,
+        budget: budgetSelect.value,
+        openNow: openNowToggle.checked,
+        mode,
+        distanceSetting: distanceSettings[distanceSelect.value] || distanceSettings["10 min walk"]
+      };
+    }
+
+    function requestLocation() {
+      if (!navigator.geolocation) {
+        updateLocationStatus("📍 This browser does not support location");
+        locationPromise = Promise.resolve(null);
+        return locationPromise;
+      }
+
+      updateLocationStatus("📍 Requesting your location, please allow it in the browser prompt");
+      locationStatus.style.cursor = "pointer";
+      locationStatus.title = "Click to request location again";
+
+      locationPromise = new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: Math.round(position.coords.accuracy || 0)
+            };
+
+            const accuracyText = userLocation.accuracy
+              ? `, accuracy about ${userLocation.accuracy} m`
+              : "";
+            updateLocationStatus(`📍 Current location captured${accuracyText}`);
+            updateBubbleMessage();
+            resolve(userLocation);
+          },
+          (error) => {
+            userLocation = null;
+            const reason = error && error.code === 1 ? "Location permission was denied" : "Location failed for now";
+            updateLocationStatus(`📍 ${reason}. Click here to try again`);
+            updateBubbleMessage("Please enable location first so I can properly find food near you.");
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+          }
+        );
+      });
+
+      return locationPromise;
+    }
+
+    async function ensureLocation() {
+      if (userLocation) return userLocation;
+      if (!locationPromise) return requestLocation();
+      return locationPromise;
+    }
+
+    function haversineMeters(a, b) {
+      const earthRadius = 6371000;
+      const toRadians = (degree) => degree * Math.PI / 180;
+      const dLat = toRadians(b.lat - a.lat);
+      const dLng = toRadians(b.lng - a.lng);
+      const lat1 = toRadians(a.lat);
+      const lat2 = toRadians(b.lat);
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * earthRadius * Math.asin(Math.sqrt(x));
+    }
+
+    function formatDistance(meters) {
+      if (meters < 1000) return `${Math.round(meters)} m`;
+      return `${(meters / 1000).toFixed(1)} km`;
+    }
+
+    function estimateWalkMinutes(meters) {
+      return Math.max(1, Math.ceil(meters / 65));
+    }
+
+    function normalizeText(value) {
+      return String(value || "").toLowerCase().replaceAll("_", " ");
+    }
+
+    function buildOverpassQuery(location, radiusMeters) {
+      const lat = location.lat;
+      const lng = location.lng;
+      return `
+        [out:json][timeout:25];
+        (
+          node["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bar|pub"]["name"](around:${radiusMeters},${lat},${lng});
+          way["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bar|pub"]["name"](around:${radiusMeters},${lat},${lng});
+          relation["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bar|pub"]["name"](around:${radiusMeters},${lat},${lng});
+          node["shop"~"bakery|confectionery|coffee|tea|pastry|ice_cream"]["name"](around:${radiusMeters},${lat},${lng});
+          way["shop"~"bakery|confectionery|coffee|tea|pastry|ice_cream"]["name"](around:${radiusMeters},${lat},${lng});
+          relation["shop"~"bakery|confectionery|coffee|tea|pastry|ice_cream"]["name"](around:${radiusMeters},${lat},${lng});
+        );
+        out center tags 60;
+      `;
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchFromOverpass(query) {
+      let lastError = null;
+
+      for (const endpoint of overpassEndpoints) {
+        try {
+          updateBubbleMessage("I am checking real map data right now. Give me a second.");
+
+          const response = await fetchWithTimeout(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({ data: query })
+          }, 4500);
+
+          if (!response.ok) {
+            throw new Error(`Map service returned ${response.status}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          if (error && error.name === "AbortError") {
+            lastError = new Error("The map service was too slow, so I stopped waiting. Please try again in a bit, or choose a smaller distance.");
+          } else {
+            lastError = error;
+          }
+        }
+      }
+
+      throw lastError || new Error("The free map data service is temporarily unavailable.");
+    }
+
+    function osmElementToPlace(element, location) {
+      const tags = element.tags || {};
+      const lat = element.lat ?? element.center?.lat;
+      const lng = element.lon ?? element.center?.lon;
+
+      if (typeof lat !== "number" || typeof lng !== "number" || !tags.name) {
+        return null;
+      }
+
+      const distanceMeters = haversineMeters(location, { lat, lng });
+      const amenity = tags.amenity || "";
+      const shop = tags.shop || "";
+      const typeLabel = tags.cuisine || amenity || shop || "food";
+      const street = [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" ");
+
+      return {
+        id: `${element.type}-${element.id}`,
+        name: tags.name,
+        lat,
+        lng,
+        amenity,
+        shop,
+        cuisine: tags.cuisine || "",
+        typeLabel,
+        address: street || tags["addr:full"] || "Address not labeled in map data",
+        openingHours: tags.opening_hours || "",
+        website: tags.website || tags["contact:website"] || "",
+        phone: tags.phone || tags["contact:phone"] || "",
+        distanceMeters,
+        walkMinutes: estimateWalkMinutes(distanceMeters)
+      };
+    }
+
+    function placeSearchText(place) {
+      return normalizeText([
+        place.name,
+        place.cuisine,
+        place.amenity,
+        place.shop,
+        place.typeLabel
+      ].join(" "));
+    }
+
+    function matchesCuisine(place, cuisine) {
+      if (cuisine === "Anything") return true;
+
+      if (cuisine === "Cafe") {
+        if (place.amenity === "cafe" || ["coffee", "tea"].includes(place.shop)) return true;
+      }
+
+      if (cuisine === "Dessert") {
+        if (place.amenity === "ice_cream" || ["bakery", "confectionery", "pastry", "ice_cream"].includes(place.shop)) return true;
+      }
+
+      const haystack = placeSearchText(place);
+      return (cuisineMatchers[cuisine] || []).some((keyword) => haystack.includes(keyword));
+    }
+
+    function budgetScore(place, budget) {
+      const preferred = budgetHints[budget] || [];
+      const type = place.amenity || place.shop;
+      let score = preferred.includes(type) ? 2 : 0;
+
+      if (budget === "cheap" && normalizeText(place.name).includes("market")) {
+        score += 1;
+      }
+
+      if (budget === "treat myself" && place.amenity === "restaurant") {
+        score += 1;
+      }
+
+      return score;
+    }
+
+    function openingScore(place) {
+      if (!place.openingHours) return 0;
+      if (place.openingHours.trim() === "24/7") return 2;
+      return 1;
+    }
+
+    async function getNearbyPlaces(filters) {
+      const location = await ensureLocation();
+
+      if (!location) {
+        throw new Error("I cannot access your location yet, so I cannot accurately search nearby restaurants. Please allow location access in your browser and try again.");
+      }
+
+      const query = buildOverpassQuery(location, filters.distanceSetting.radiusMeters);
+      const data = await fetchFromOverpass(query);
+      const map = new Map();
+
+      (data.elements || []).forEach((element) => {
+        const place = osmElementToPlace(element, location);
+        if (!place) return;
+        if (place.distanceMeters > filters.distanceSetting.radiusMeters) return;
+        if (!map.has(place.id)) map.set(place.id, place);
+      });
+
+      lastRawPlaces = [...map.values()].sort((a, b) => a.distanceMeters - b.distanceMeters);
+      return lastRawPlaces;
+    }
+
+    function rankPlaces(places, filters) {
+      let candidates = places.filter((place) => matchesCuisine(place, filters.cuisine));
+      let usedFallback = false;
+
+      if (!candidates.length && filters.cuisine !== "Anything") {
+        candidates = places;
+        usedFallback = true;
+      }
+
+      if (filters.openNow) {
+        candidates = [...candidates].sort((a, b) => openingScore(b) - openingScore(a));
+      }
+
+      if (filters.mode === "closest") {
+        candidates = [...candidates].sort((a, b) => {
+          return a.distanceMeters - b.distanceMeters || budgetScore(b, filters.budget) - budgetScore(a, filters.budget);
+        });
+      } else if (filters.mode === "best rated") {
+        candidates = [...candidates].sort((a, b) => {
+          return budgetScore(b, filters.budget) - budgetScore(a, filters.budget) || openingScore(b) - openingScore(a) || a.distanceMeters - b.distanceMeters;
+        });
+      } else {
+        candidates = shuffle(candidates);
+      }
+
+      return {
+        places: candidates.slice(0, 3),
+        totalMatched: candidates.length,
+        usedFallback
+      };
+    }
+
+    function buildMapsDirectionsUrl(place) {
+      const destination = `${place.lat},${place.lng}`;
+      const params = new URLSearchParams({
+        api: "1",
+        destination,
+        travelmode: "walking"
+      });
+
+      if (userLocation) {
+        params.set("origin", `${userLocation.lat},${userLocation.lng}`);
+      }
+
+      return `https://www.google.com/maps/dir/?${params.toString()}`;
+    }
+
+    function buildMapsSearchUrl(place) {
+      const query = `${place.name} ${place.lat},${place.lng}`;
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    }
+
+    function cuisineQueryLabel(cuisine) {
+      if (cuisine === "Anything") return "restaurants";
+      if (cuisine === "Cafe") return "cafes";
+      if (cuisine === "Dessert") return "dessert shops";
+      return `${cuisine} restaurants`;
+    }
+
+    function buildFallbackMapsUrl(filters) {
+      const query = `${cuisineQueryLabel(filters.visibleCuisine)} near me`;
+      const params = new URLSearchParams({ api: "1", query });
+      return `https://www.google.com/maps/search/?${params.toString()}`;
+    }
+
+    function buildMeta(filters, places, usedFallback) {
+      const cuisineText = filters.cuisine === "Anything" ? "Cuisine: anything" : `Cuisine: ${filters.visibleCuisine}`;
+      const dataText = usedFallback ? "No exact cuisine match found, showing nearby real food places instead" : `Matched ${places.length} candidates`;
+      const accuracyText = userLocation?.accuracy ? `Location accuracy about ${userLocation.accuracy} m` : "Location enabled";
+
+      return [
+        `Distance: ${filters.distance}`,
+        cuisineText,
+        `Budget: ${filters.budget}`,
+        dataText,
+        accuracyText
+      ];
+    }
+
+    function buildResultText(filters, places, totalMatched, usedFallback) {
+      if (!lastRawPlaces.length) {
+        return {
+          title: "No food data found in this range",
+          copy: "This time I am reading real map data instead of inventing place names. Try switching to 15 min walk or try again in a moment."
+        };
+      }
+
+      if (!places.length) {
+        return {
+          title: "No result for this filter",
+          copy: "The real map data does not show any places matching these settings. Try relaxing the cuisine or increasing the distance."
+        };
+      }
+
+      const fallbackText = usedFallback
+        ? `There were no ${filters.visibleCuisine} matches in this range, so I picked from real nearby food places instead.`
+        : `I found ${totalMatched} candidates within your chosen range.`;
+
+      return {
+        title: `The hamster found ${places.length} real nearby places for you`,
+        copy: `${fallbackText} ${decisionCopy[filters.mode]} Distance is calculated from your current location to each place coordinate, and the navigation button opens Google Maps with coordinates directly.`
+      };
+    }
+
+    function renderEmpty(message) {
+      restaurantList.innerHTML = `<div class="restaurant-empty">${escapeHtml(message)}</div>`;
+    }
+
+    function renderMapsFallback(filters, message = "") {
+      resultModeTag.textContent = "Google Maps mode";
+      resultTitle.textContent = "Let Google Maps find real nearby places first";
+      resultCopy.textContent = message || "The free map data service did not return in time, so I bundled your filters and handed them directly to Google Maps. It is more stable and will not invent fake restaurant names.";
+      resultMeta.innerHTML = buildMeta(filters, [], false).map((item) => `<span class="meta-pill">${escapeHtml(item)}</span>`).join("");
+
+      const mapsUrl = buildFallbackMapsUrl(filters);
+      restaurantList.innerHTML = `
+        <section class="restaurant-item">
+          <div class="restaurant-head">
+            <div class="restaurant-icon" aria-hidden="true">🗺️</div>
+            <div class="restaurant-main">
+              <div class="restaurant-title-row">
+                <h4 class="restaurant-name">Google Maps nearby search</h4>
+                <span class="restaurant-rating">Real results</span>
+              </div>
+              <p class="restaurant-subtitle">${escapeHtml(cuisineQueryLabel(filters.visibleCuisine))} · ${escapeHtml(filters.distance)}</p>
+            </div>
+          </div>
+          <p class="restaurant-blurb">This version will not randomly invent restaurants. Tap the button below and Google Maps will search for real nearby places using your current location, then show accurate distance, routes, and business status.</p>
+          <div class="restaurant-meta">
+            <span class="restaurant-chip">Cuisine: ${escapeHtml(filters.visibleCuisine)}</span>
+            <span class="restaurant-chip">Distance preference: ${escapeHtml(filters.distance)}</span>
+            <span class="restaurant-chip">Budget preference: ${escapeHtml(filters.budget)}</span>
+          </div>
+          <button class="paw-button" type="button" data-maps-url="${mapsUrl}">Open Google Maps for real nearby places 🐾</button>
+        </section>
+      `;
+      resultTip.textContent = "A pure frontend page does not have a stable restaurant database. If you want real places rendered directly in-page every time, the best next step is integrating Google Places API or Yelp API.";
+      updateBubbleMessage("If the free map service is slow, we can let the main map handle it.");
+      resultCard.classList.add("show");
+    }
+
+    function renderRestaurants(places) {
+      if (!places.length) {
+        renderEmpty("No real places matched these filters. Try switching to Anything or increasing the distance.");
+        return;
+      }
+
+      restaurantList.innerHTML = places.map((place, index) => {
+        const icon = cuisineIcons[place.cuisine] || cuisineIcons.Anything;
+        const type = place.cuisine || place.amenity || place.shop || "food";
+        const openingText = place.openingHours ? `Hours: ${place.openingHours}` : "Hours not listed, so it is best to confirm inside the map";
+        const contactText = [place.phone, place.website ? "Website available" : ""].filter(Boolean).join(" · ");
+
+        return `
+          <section class="restaurant-item">
+            <div class="restaurant-head">
+              <div class="restaurant-icon" aria-hidden="true">${icon}</div>
+              <div class="restaurant-main">
+                <div class="restaurant-title-row">
+                  <h4 class="restaurant-name">${index + 1}. ${escapeHtml(place.name)}</h4>
+                  <span class="restaurant-rating">🚶 ${place.walkMinutes} min</span>
+                </div>
+                <p class="restaurant-subtitle">${escapeHtml(type)} · ${escapeHtml(place.address)}</p>
+              </div>
+            </div>
+            <p class="restaurant-blurb">This is a real map-data result. Straight-line distance is about ${formatDistance(place.distanceMeters)}, and walking time is a conservative estimate. Final routing is up to Google Maps.</p>
+            <div class="restaurant-meta">
+              <span class="restaurant-chip">${formatDistance(place.distanceMeters)}</span>
+              <span class="restaurant-chip">Estimated ${place.walkMinutes} min walk</span>
+              <span class="restaurant-chip">${escapeHtml(openingText)}</span>
+              ${contactText ? `<span class="restaurant-chip">${escapeHtml(contactText)}</span>` : ""}
+            </div>
+            <button class="paw-button" type="button" data-maps-url="${buildMapsDirectionsUrl(place)}">Paw Navigation 🐾</button>
+            <button class="paw-button" type="button" data-maps-url="${buildMapsSearchUrl(place)}" style="margin-top: 10px; background: linear-gradient(180deg, #ffffff, #fff4df); animation: none;">View this place in Maps</button>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderResult(filters, ranking) {
+      const { places, totalMatched, usedFallback } = ranking;
+      const text = buildResultText(filters, places, totalMatched, usedFallback);
+      resultModeTag.textContent = `${filters.mode} mode`;
+      resultTitle.textContent = text.title;
+      resultCopy.textContent = text.copy;
+      resultMeta.innerHTML = buildMeta(filters, places, usedFallback).map((item) => `<span class="meta-pill">${escapeHtml(item)}</span>`).join("");
+      renderRestaurants(places);
+      resultTip.textContent = "Data comes from OpenStreetMap public nearby food-place data. Since free data does not reliably include ratings or live opening status, this page gives more weight to real distance and real places.";
+      updateBubbleMessage();
+      resultCard.classList.add("show");
+    }
+
+    function renderLoading(filters) {
+      resultModeTag.textContent = `${filters.mode} mode`;
+      resultTitle.textContent = "The hamster is scanning real nearby food data";
+      resultCopy.textContent = "I will first try public map data. If it is too slow, I will automatically switch to Google Maps search so you do not get stuck waiting.";
+      resultMeta.innerHTML = buildMeta(filters, [], false).map((item) => `<span class="meta-pill">${escapeHtml(item)}</span>`).join("");
+      renderEmpty("Loading nearby food data, please wait a moment.");
+      resultTip.textContent = "This step requests public map data. If the service times out, the page will automatically switch to a more stable map search flow.";
+      resultCard.classList.add("show");
+    }
+
+    function runSpinnerAnimation() {
+      return new Promise((resolve) => {
+        let elapsed = 0;
+        const duration = 1200;
+        const interval = 120;
+
+        resultCard.classList.remove("show");
+        foodSpinner.classList.add("active");
+        foodSpinner.textContent = randomFrom(foodIcons);
+
+        spinnerTimer = setInterval(() => {
+          foodSpinner.textContent = randomFrom(foodIcons);
+          elapsed += interval;
+
+          if (elapsed >= duration) {
+            clearInterval(spinnerTimer);
+            spinnerTimer = null;
+            foodSpinner.classList.remove("active");
+            resolve();
+          }
+        }, interval);
+      });
+    }
+
+    async function launchDecision() {
+      if (spinnerTimer) return;
+
+      launchButton.disabled = true;
+
+      try {
+        updateBubbleMessage("Got it. I am flipping through nearby food options now.");
+        await runSpinnerAnimation();
+        const filters = getFilters();
+        renderLoading(filters);
+        const places = await getNearbyPlaces(filters);
+        const ranking = rankPlaces(places, filters);
+        renderResult(filters, ranking);
+      } catch (error) {
+        const filters = getFilters();
+        renderMapsFallback(filters, error.message || "The free map data service did not respond in time.");
+      } finally {
+        launchButton.disabled = false;
+      }
+    }
+
+    launchButton.addEventListener("click", launchDecision);
+
+    locationStatus.addEventListener("click", () => {
+      userLocation = null;
+      locationPromise = null;
+      requestLocation();
+    });
+
+    restaurantList.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-maps-url]");
+      if (!target) return;
+      window.open(target.dataset.mapsUrl, "_blank", "noopener,noreferrer");
+    });
+
+    window.addEventListener("load", () => {
+      updateBubbleMessage();
+      requestLocation();
+    });
+  </script>
+</body>
+</html>
