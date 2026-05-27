@@ -1,5 +1,5 @@
 # 🐹 鼠鼠的干饭抉择器！
-
+<img width="118" height="125" alt="Screenshot 2026-05-26 at 8 32 41 PM" src="https://github.com/user-attachments/assets/0b2436db-d51f-4dd5-b37d-d9c9caa11fd2" />
 A cute little food decision helper for people who are hungry, tired, and absolutely not in the mood to answer the eternal question
 
 What should I eat today?
